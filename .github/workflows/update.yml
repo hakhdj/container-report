@@ -1,0 +1,35 @@
+name: 每日更新供应商空容器报表
+
+on:
+  schedule:
+    # 每天 06:30 UTC（北京时间14:30）
+    - cron: '30 6 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch data from WPS
+        env:
+          WPS_WEBHOOK: https://www.kdocs.cn/api/v3/ide/file/chwT7R5tuClY/script/V2-6JD4QADDyPARC3GyOxJayU/sync_task
+          WPS_TOKEN: 1nTauyuxuHa0aJd3Jzwd5C
+        run: |
+          curl -s -X POST "$WPS_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -H "AirScript-Token: $WPS_TOKEN" \
+            -d '{"Context":{"argv":{},"sheet_name":"空容器数"}}' \
+            -o wps_response.json
+
+      - name: Update HTML report
+        run: |
+          node update_report.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "auto-update"
+          git config user.email "auto@update.bot"
+          git diff --quiet index.html || (git add index.html && git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')" && git push)
