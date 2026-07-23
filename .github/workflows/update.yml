@@ -1,13 +1,20 @@
-name: 每日更新供应商空容器报表
+name: 部署供应商空容器报表到 GitHub Pages
 
 on:
+  push:
+    branches: [main]
   schedule:
     # 每天 06:30 UTC（北京时间14:30）
     - cron: '30 6 * * *'
   workflow_dispatch: # 允许手动触发
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
-  update:
+  update-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,13 +30,26 @@ jobs:
             -H "AirScript-Token: $WPS_TOKEN" \
             -d '{"Context":{"argv":{},"sheet_name":"空容器数"}}' \
             -o wps_response.json
+          echo "WPS response saved"
+          cat wps_response.json | head -c 200
 
-      - name: Update HTML report
+      - name: Update HTML report with latest data
         run: |
           node update_report.js
 
-      - name: Commit and push if changed
+      - name: Commit updated data
         run: |
           git config user.name "auto-update"
           git config user.email "auto@update.bot"
           git diff --quiet index.html || (git add index.html && git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')" && git push)
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
