@@ -1,12 +1,12 @@
-name: 部署供应商空容器报表到 GitHub Pages
+name: 检测WPS数据更新并部署报表
 
 on:
+  schedule:
+    # 每 5 分钟检查一次
+    - cron: '*/5 * * * *'
   push:
     branches: [main]
-  schedule:
-    # 每天 06:30 UTC（北京时间14:30）
-    - cron: '30 6 * * *'
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,13 +14,14 @@ permissions:
   id-token: write
 
 jobs:
-  update-and-deploy:
+  check-and-update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Fetch data from WPS
+        id: fetch
         env:
           WPS_WEBHOOK: https://www.kdocs.cn/api/v3/ide/file/chwT7R5tuClY/script/V2-6JD4QADDyPARC3GyOxJayU/sync_task
           WPS_TOKEN: 1nTauyuxuHa0aJd3Jzwd5C
@@ -31,25 +32,64 @@ jobs:
             -d '{"Context":{"argv":{},"sheet_name":"空容器数"}}' \
             -o wps_response.json
           echo "WPS response saved"
-          cat wps_response.json | head -c 200
 
-      - name: Update HTML report with latest data
+      - name: Compute data hash
+        id: hash
+        run: |
+          # 提取 result 字段并计算 hash
+          DATA_HASH=$(python3 -c "
+          import json, hashlib
+          with open('wps_response.json') as f:
+              resp = json.load(f)
+          result = resp.get('data',{}).get('result','')
+          print(hashlib.md5(result.encode()).hexdigest())
+          ")
+          echo "Data hash: $DATA_HASH"
+          echo "hash=$DATA_HASH" >> $GITHUB_OUTPUT
+
+          # 读取之前的 hash（如果存在）
+          if [ -f .last_hash ]; then
+            LAST_HASH=$(cat .last_hash)
+          else
+            LAST_HASH=""
+          fi
+          echo "Last hash: $LAST_HASH"
+          echo "last_hash=$LAST_HASH" >> $GITHUB_OUTPUT
+
+          if [ "$DATA_HASH" = "$LAST_HASH" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "数据未变化，跳过更新"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "数据已变化，将更新报表"
+          fi
+
+      - name: Update HTML report
+        if: steps.hash.outputs.changed == 'true'
         run: |
           node update_report.js
 
-      - name: Commit updated data
+      - name: Save new hash and commit
+        if: steps.hash.outputs.changed == 'true'
         run: |
+          echo "${{ steps.hash.outputs.hash }}" > .last_hash
           git config user.name "auto-update"
           git config user.email "auto@update.bot"
-          git diff --quiet index.html || (git pull --rebase origin main && git add index.html && git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')" && git push)
+          git pull --rebase origin main || true
+          git add index.html .last_hash
+          git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')"
+          git push
 
       - name: Setup Pages
+        if: steps.hash.outputs.changed == 'true' || github.event_name == 'push'
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
+        if: steps.hash.outputs.changed == 'true' || github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
       - name: Deploy to GitHub Pages
+        if: steps.hash.outputs.changed == 'true' || github.event_name == 'push'
         uses: actions/deploy-pages@v4
