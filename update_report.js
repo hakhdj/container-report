@@ -26,7 +26,6 @@ const specialCatDisplay = {
   '轮胎架子': '轮胎架子',
   '可折叠铁框': '可折叠铁框',
   'PE折叠箱': 'PE 折叠箱',
-  'PE折叠箱': 'PE 折叠箱',
   '隔板': '隔板',
 };
 
@@ -84,41 +83,33 @@ for (const [dateKey, items] of Object.entries(dateGroups)) {
   TIMELINE[dateKey] = dateObj;
 }
 
-// 读取 HTML 文件
-const html = fs.readFileSync('index.html', 'utf-8');
-
-// 用正则替换 TIMELINE 数据块
-const timelineStart = '// =====================================================================\n// 多天数据\n// =====================================================================\nconst TIMELINE = {';
-const timelineEnd = '};\n\n// =====================================================================\n// 标准值';
-
-const startIdx = html.indexOf(timelineStart);
-const endIdx = html.indexOf(timelineEnd, startIdx);
-
-if (startIdx === -1 || endIdx === -1) {
-  console.log('找不到 TIMELINE 数据块，尝试其他匹配方式');
-  // 尝试简单匹配
-  const s2 = 'const TIMELINE = {';
-  const e2 = '};\n\n// =====================================================================\n// 标准值';
-  const si2 = html.indexOf(s2);
-  const ei2 = html.indexOf(e2, si2);
-  if (si2 === -1 || ei2 === -1) {
-    console.error('无法找到 TIMELINE 块，退出');
-    process.exit(1);
-  }
-  startIdx = si2;
-  endIdx = ei2 + 2; // 包含 };
-}
-
-// 生成新的 TIMELINE 代码
-const timelineCode = 'const TIMELINE = ' + JSON.stringify(TIMELINE, null, 4)
+// 生成新的 TIMELINE 代码（单行紧凑格式，便于正则匹配）
+const timelineStr = JSON.stringify(TIMELINE, null, 4)
   .replace(/"supplier":/g, 'supplier:')
   .replace(/"qty":/g, 'qty:')
   .replace(/"cat":/g, 'cat:')
-  .replace(/"limit":/g, 'limit:')
-  + ';\n';
+  .replace(/"limit":/g, 'limit:');
+
+// 读取 HTML 文件
+const html = fs.readFileSync('index.html', 'utf-8');
+
+// 使用正则表达式匹配 TIMELINE 块
+// 匹配 `const TIMELINE = { ... };` 整块
+const timelineRegex = /const\s+TIMELINE\s*=\s*\{[\s\S]*?\};/;
+const match = html.match(timelineRegex);
+
+if (!match) {
+  console.error('无法找到 TIMELINE 块');
+  process.exit(1);
+}
+
+console.log(`找到 TIMELINE 块，长度: ${match[0].length}`);
+
+// 生成新的 TIMELINE 代码
+const newTimelineCode = `const TIMELINE = ${timelineStr};`;
 
 // 替换
-const newHtml = html.substring(0, startIdx) + timelineCode + '\n' + html.substring(endIdx + 2);
+const newHtml = html.replace(timelineRegex, newTimelineCode);
 
 // 写入更新后的 HTML
 fs.writeFileSync('index.html', newHtml, 'utf-8');
