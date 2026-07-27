@@ -101,7 +101,7 @@ function recordToRow(record) {
     const row = {};
     const fvs = record.field_values || [];
     for (const fv of fvs) {
-        const field = fv.field;
+        const field = fv.field_title || fv.field;
         if (!field) continue;
 
         // 文本字段
@@ -226,6 +226,31 @@ const knownNonDataFields = ['区域', '供应商', '容器类别', '标准线', 
         console.log(`  ${d}: ${total} 条`);
     }
 
+    // =====================================================================
+    // 构建 STANDARD（从源文档"标准线"列动态读取）
+    // =====================================================================
+    const STANDARD = {};
+    for (const row of rows) {
+        const zoneRaw = (row['区域'] || '').toString().trim();
+        const zone = zoneMap[zoneRaw] || zoneMap[zoneRaw.replace(/\s/g, '')];
+        if (!zone) continue;
+
+        const supplierRaw = (row['供应商'] || '').toString().trim();
+        const supplier = supMap[supplierRaw] || supplierRaw;
+        if (!supplier) continue;
+
+        const catRaw = (row['容器类别'] || '').toString().trim();
+        if (!catRaw) continue; // 无容器类别的行（如纯托盘记录）跳过
+        const cat = catMap[catRaw] || catRaw;
+
+        const stdVal = row['标准线'];
+        const std = typeof stdVal === 'number' ? stdVal : Number(stdVal);
+        if (isNaN(std) || std <= 0) continue;
+
+        STANDARD[`${zone}|${supplier}|${cat}`] = std;
+    }
+    console.log('STANDARD 条目数:', Object.keys(STANDARD).length);
+
     // 读取 HTML
     const html = fs.readFileSync('index.html', 'utf-8');
 
@@ -251,7 +276,11 @@ const knownNonDataFields = ['区域', '供应商', '容器类别', '标准线', 
 
     const timelineStr = 'const TIMELINE = ' + toJsLiteral(TIMELINE) + ';';
     const timelineRegex = /const TIMELINE = \{[\s\S]*?\};/;
-    const newHtml = html.replace(timelineRegex, timelineStr);
+    let newHtml = html.replace(timelineRegex, timelineStr);
+
+    const standardStr = 'const STANDARD = ' + toJsLiteral(STANDARD) + ';';
+    const standardRegex = /const STANDARD = \{[\s\S]*?\};/;
+    newHtml = newHtml.replace(standardRegex, standardStr);
 
     if (newHtml === html) {
         console.log('❌ HTML 未变化');
