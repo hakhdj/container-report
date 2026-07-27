@@ -53,6 +53,8 @@ jobs:
 
       - name: Fetch data from Feishu bitable
         if: github.event_name == 'schedule' || (github.event_name == 'repository_dispatch' && github.event.client_payload.records == '')
+        id: fetch-feishu
+        continue-on-error: true
         env:
           FEISHU_TOKEN: ${{ steps.feishu-token.outputs.token }}
           APP_TOKEN: ${{ secrets.FEISHU_APP_TOKEN }}
@@ -74,7 +76,8 @@ jobs:
             # 检查API返回
             CODE=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code',-1))")
             if [ "$CODE" != "0" ]; then
-              echo "❌ 飞书API错误: $RESP"
+              echo "⚠️ 飞书API暂不可用: $(echo "$RESP" | head -c 200)"
+              echo "fetch_success=false" >> $GITHUB_OUTPUT
               exit 1
             fi
 
@@ -101,15 +104,18 @@ jobs:
 
           TOTAL=$(python3 -c "import json; print(len(json.load(open('feishu_records.json'))['items']))")
           echo "✅ 飞书数据获取完成，共 $TOTAL 条记录"
+          echo "fetch_success=true" >> $GITHUB_OUTPUT
 
       # ============================================================
-      # 数据处理和HTML更新
+      # 数据处理和HTML更新（仅当有数据时执行）
       # ============================================================
       - name: Process data and update HTML
+        if: github.event_name == 'push' || (github.event_name == 'repository_dispatch' && github.event.client_payload.records != '') || steps.fetch-feishu.outputs.fetch_success == 'true'
         run: |
           node update_feishu_data.js
 
       - name: Check if HTML changed
+        if: github.event_name == 'push' || (github.event_name == 'repository_dispatch' && github.event.client_payload.records != '') || steps.fetch-feishu.outputs.fetch_success == 'true'
         id: check
         run: |
           if git diff --quiet index.html; then
@@ -119,6 +125,13 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
             echo "数据已变化，将更新报表"
           fi
+
+      - name: Skip update (no data available)
+        if: github.event_name != 'push' && (github.event_name == 'repository_dispatch' && github.event.client_payload.records == '') && steps.fetch-feishu.outputs.fetch_success != 'true'
+        run: |
+          echo "⚠️ 无法获取数据（飞书API暂不可用），跳过本次更新"
+          echo "请在飞书自动化流程中配置发送数据到 GitHub Actions"
+          echo "详见飞书自动化流程第三步配置"
 
       - name: Commit and push
         if: steps.check.outputs.changed == 'true'
