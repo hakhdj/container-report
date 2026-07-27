@@ -142,7 +142,7 @@ const catKeyMap = {
     '可折叠胶框': 'box', '轮胎架子': 'rack',
 };
 
-const zoneMap = { '科技': 'tech', '智能': 'intel', '智造港': 'mfg', 'C2南': 'c2' };
+const zoneMap = { '科技': 'tech', '智能': 'intel', '智造港': 'mfg' };
 
 const specialCats = ['可折叠胶框', 'PE折叠箱', '可折叠铁框', '隔板', '轮胎架子'];
 
@@ -206,7 +206,7 @@ const knownNonDataFields = ['区域', '供应商', '容器类别', '标准线', 
     }
 
     // 确保所有 zone 都有 4 个 cat 类别
-    const zones = ['tech', 'intel', 'mfg', 'c2'];
+    const zones = ['tech', 'intel', 'mfg'];
     const cats = ['box', 'rack', 'pallet', 'iron'];
     for (const [dateKey, dateObj] of Object.entries(TIMELINE)) {
         for (const z of zones) {
