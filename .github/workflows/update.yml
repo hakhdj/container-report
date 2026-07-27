@@ -1,7 +1,7 @@
 name: 自动更新供应商空容器报表
 
 on:
-  # 定时拉取 Google Sheets 数据（每 30 分钟）
+  # 定时拉取腾讯文档数据（每 30 分钟）
   schedule:
     - cron: '*/30 * * * *'
   # 手动触发
@@ -23,62 +23,15 @@ jobs:
         uses: actions/checkout@v4
 
       # ============================================================
-      # 从 Google Sheets 拉取数据
+      # 从腾讯文档 MCP 拉取数据并更新 HTML
       # ============================================================
-      - name: Authenticate with Google
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-
-      - name: Fetch data from Google Sheets
-        id: fetch
+      - name: Process Tencent Docs data and update HTML
         env:
-          SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
-          SHEETS_RANGE: 'A:Z'
+          TENCENT_DOCS_TOKEN: ${{ secrets.TENCENT_DOCS_TOKEN }}
+          TENCENT_SMARTSHEET_FILE_ID: ${{ secrets.TENCENT_SMARTSHEET_FILE_ID }}
+          TENCENT_SMARTSHEET_SHEET_ID: ${{ secrets.TENCENT_SMARTSHEET_SHEET_ID }}
         run: |
-          # 获取 access token
-          TOKEN=$(cat $GOOGLE_APPLICATION_CREDENTIALS | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          print(data.get('client_email', ''))
-          " 2>/dev/null || echo "")
-
-          # 用 gcloud 获取 access token（auth step 已配置）
-          ACCESS_TOKEN=$(gcloud auth application-default print-access-token 2>/dev/null || echo "")
-
-          if [ -z "$ACCESS_TOKEN" ]; then
-            echo "❌ 无法获取 Google access token"
-            exit 1
-          fi
-
-          # 调用 Google Sheets API
-          URL="https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_ID}/values/${SHEETS_RANGE}"
-          HTTP_CODE=$(curl -s -o google_sheets_data.json -w "%{http_code}" \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            "$URL")
-
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "❌ Google Sheets API 错误 (HTTP $HTTP_CODE):"
-            cat google_sheets_data.json
-            exit 1
-          fi
-
-          # 显示获取的数据预览
-          ROWS=$(python3 -c "
-          import json
-          with open('google_sheets_data.json') as f:
-              d = json.load(f)
-          print(len(d.get('values', [])))
-          ")
-          echo "✅ Google Sheets 数据获取完成，共 $ROWS 行"
-
-      # ============================================================
-      # 数据处理和HTML更新
-      # ============================================================
-      - name: Process data and update HTML
-        run: |
-          node update_google_sheets_data.js
+          node update_tencent_docs_data.js
 
       - name: Check if HTML changed
         id: check
