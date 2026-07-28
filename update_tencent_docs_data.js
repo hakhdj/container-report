@@ -287,12 +287,48 @@ const knownNonDataFields = ['区域', '供应商', '容器类别', '标准线', 
         process.exit(1);
     }
 
-    const now = new Date();
-    const dateStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' +
-                    String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    // 拉取文档最后修改时间作为"数据截止"时间
+    let cutoffStr = '';
+    try {
+        const infoResp = await callMCP('manage.query_file_info', { file_id: FILE_ID });
+        const infoContent = infoResp.result?.content;
+        let infoParsed;
+        if (Array.isArray(infoContent)) {
+            for (const c of infoContent) {
+                if (c.type === 'text') { try { infoParsed = JSON.parse(c.text); break; } catch (e) {} }
+            }
+        }
+        const lmt = infoParsed?.last_modify_time;
+        if (lmt) {
+            // 使用北京时区格式化，避免 GitHub Actions UTC 环境下显示错误时间
+            const fmt = new Intl.DateTimeFormat('zh-CN', {
+                timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            });
+            // 输出形如 "2026/7/28 08:43"
+            const parts = {};
+            for (const p of fmt.formatToParts(new Date(Number(lmt)))) parts[p.type] = p.value;
+            cutoffStr = `${parts.year}年${Number(parts.month)}月${Number(parts.day)}日 ${parts.hour}:${parts.minute}`;
+            console.log('文档最后修改时间:', cutoffStr);
+        }
+    } catch (e) {
+        console.log('⚠️ 获取文档修改时间失败:', e.message);
+    }
+    if (!cutoffStr) {
+        const now = new Date();
+        const fmt = new Intl.DateTimeFormat('zh-CN', {
+            timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false
+        });
+        const parts = {};
+        for (const p of fmt.formatToParts(now)) parts[p.type] = p.value;
+        cutoffStr = `${parts.year}年${Number(parts.month)}月${Number(parts.day)}日 ${parts.hour}:${parts.minute}`;
+        console.log('使用脚本运行时间作为截止时间:', cutoffStr);
+    }
+
     const dateUpdate = newHtml.replace(
         /数据截止：[^<\|]*/,
-        '数据截止：' + dateStr
+        '数据截止：' + cutoffStr
     );
 
     fs.writeFileSync('index.html', dateUpdate, 'utf-8');
