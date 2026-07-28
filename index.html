@@ -215,7 +215,7 @@
 
 <div class="header">
     <h1>📦 供应商空容器对比报表</h1>
-    <p>科技 · 智能 · 智造港 | 数据截止：2026年7月27日 21:44</p>
+    <p>科技 · 智能 · 智造港 | 数据截止：2026年7月27日 20:33</p>
     <p style="margin-top:6px; font-size:12px; opacity:0.7;">注：表格中"不可折叠胶框"即"胶框"，"周转架"即"架子"</p>
 </div>
 
@@ -289,6 +289,17 @@
     </div>
 </div>
 
+<!-- ================================================================== -->
+<!-- 板块四：托盘供应商趋势对比折线图 -->
+<!-- ================================================================== -->
+<div class="section-block">
+    <h2 class="section-title">🛤️ 四、托盘供应商趋势对比 <span class="num">（仅展示有托盘数据的供应商）</span></h2>
+    <div id="palletTrendContainer" style="background:white;padding:16px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <canvas id="palletTrendChart" style="max-height:420px;"></canvas>
+        <div id="palletTrendLegend" style="margin-top:10px;font-size:12px;color:#666;"></div>
+    </div>
+</div>
+
 <div class="footer">
     数据来源：现场统计 | 点击供应商名称查看详情 | 支持多天数据扩展
 </div>
@@ -312,210 +323,6 @@
 // 多天数据
 // =====================================================================
 const TIMELINE = {
-        '07-28': {
-            tech: {
-                box: [
-                    {
-                        supplier: '联宝',
-                        qty: 240
-                    },
-                    {
-                        supplier: '英华达',
-                        qty: 194
-                    },
-                    {
-                        supplier: '华凌',
-                        qty: 200
-                    },
-                    {
-                        supplier: '威正达',
-                        qty: 180
-                    },
-                    {
-                        supplier: '浩全',
-                        qty: 150
-                    },
-                    {
-                        supplier: '博康',
-                        qty: 200
-                    },
-                    {
-                        supplier: '力邦',
-                        qty: 450
-                    },
-                    {
-                        supplier: '庆瓯',
-                        qty: 720
-                    },
-                    {
-                        supplier: '五标',
-                        qty: 600
-                    },
-                    {
-                        supplier: '艾博格',
-                        qty: 150
-                    },
-                    {
-                        supplier: '雄鑫',
-                        qty: 380
-                    },
-                    {
-                        supplier: '英利',
-                        qty: 400,
-                        cat: '可折叠胶框'
-                    },
-                    {
-                        supplier: '华裕',
-                        qty: 400
-                    },
-                    {
-                        supplier: '中奇',
-                        qty: 350
-                    },
-                    {
-                        supplier: '淄铭',
-                        qty: 600
-                    },
-                    {
-                        supplier: '锦福',
-                        qty: 120
-                    },
-                    {
-                        supplier: '聚诚',
-                        qty: 300
-                    },
-                    {
-                        supplier: '联友',
-                        qty: 500
-                    }
-                ],
-                rack: [
-                    {
-                        supplier: '金邦',
-                        qty: 45
-                    },
-                    {
-                        supplier: '豪派',
-                        qty: 42
-                    },
-                    {
-                        supplier: '创领',
-                        qty: 15
-                    },
-                    {
-                        supplier: '华裕',
-                        qty: 16
-                    },
-                    {
-                        supplier: '金正大',
-                        qty: 80
-                    }
-                ],
-                pallet: [],
-                iron: [
-                    {
-                        supplier: '华裕',
-                        qty: 60,
-                        cat: '可折叠铁框'
-                    }
-                ]
-            },
-            intel: {
-                box: [],
-                rack: [
-                    {
-                        supplier: '金邦',
-                        qty: 15
-                    }
-                ],
-                pallet: [],
-                iron: []
-            },
-            mfg: {
-                box: [
-                    {
-                        supplier: '荣嘉',
-                        qty: 72
-                    },
-                    {
-                        supplier: '浩全',
-                        qty: 90
-                    },
-                    {
-                        supplier: '华凯',
-                        qty: 50
-                    },
-                    {
-                        supplier: '领峰',
-                        qty: 100
-                    },
-                    {
-                        supplier: '五标',
-                        qty: 480
-                    },
-                    {
-                        supplier: '飞马',
-                        qty: 200
-                    },
-                    {
-                        supplier: '誉隆',
-                        qty: 300
-                    },
-                    {
-                        supplier: '华瑞',
-                        qty: 28
-                    },
-                    {
-                        supplier: '凯启',
-                        qty: 10
-                    },
-                    {
-                        supplier: '佳恒',
-                        qty: 130
-                    },
-                    {
-                        supplier: '金正大',
-                        qty: 120
-                    },
-                    {
-                        supplier: '鑫源',
-                        qty: 110
-                    },
-                    {
-                        supplier: '华格',
-                        qty: 140
-                    },
-                    {
-                        supplier: '华凌',
-                        qty: 200
-                    },
-                    {
-                        supplier: '友民',
-                        qty: 100
-                    },
-                    {
-                        supplier: '嘀视',
-                        qty: 130
-                    },
-                    {
-                        supplier: '美宝龙',
-                        qty: 110
-                    },
-                    {
-                        supplier: '英华达',
-                        qty: 140
-                    },
-                    {
-                        supplier: '大环',
-                        qty: 40,
-                        cat: '可折叠胶框'
-                    }
-                ],
-                rack: [],
-                pallet: [],
-                iron: []
-            }
-        },
         '07-26': {
             tech: {
                 box: [
@@ -584,6 +391,10 @@ const TIMELINE = {
                         supplier: '卓域',
                         qty: 200,
                         cat: '可折叠胶框'
+                    },
+                    {
+                        supplier: '淄铭',
+                        qty: 1000
                     },
                     {
                         supplier: '锦福',
@@ -1450,10 +1261,6 @@ const TIMELINE = {
                         qty: 200
                     },
                     {
-                        supplier: '凯启',
-                        qty: 200
-                    },
-                    {
                         supplier: '庆瓯',
                         qty: 400
                     },
@@ -1543,7 +1350,7 @@ const STANDARD = {
         'tech|乾阳|胶框': 200,
         'tech|日正升|可折叠胶框': 150,
         'tech|金正大|胶框': 150,
-        'tech|友民|不可折叠胶���': 200,
+        'tech|友民|胶框': 200,
         'tech|豪派|胶框': 150,
         'tech|金邦|胶框': 150,
         'tech|卓域|可折叠胶框': 200,
@@ -1570,6 +1377,7 @@ const STANDARD = {
         'tech|朗爵|架子': 30,
         'intel|联友|胶框': 300,
         'intel|淄铭|胶框': 300,
+        'intel|顶邦|胶框': 300,
         'intel|金铂利|胶框': 300,
         'intel|华格|胶框': 300,
         'intel|益捷|胶框': 300,
@@ -1587,7 +1395,6 @@ const STANDARD = {
         'mfg|飞马|胶框': 500,
         'mfg|誉隆|胶框': 700,
         'mfg|华瑞|胶框': 400,
-        'mfg|凯启|胶框': 250,
         'mfg|易宏|胶框': 100,
         'mfg|华江|胶框': 700,
         'mfg|佳恒|胶框': 100,
@@ -1658,7 +1465,6 @@ const STANDARD = {
         'mfg|庆瓯|托盘': 50,
         'mfg|金邦|托盘': 50,
         'mfg|西普尔|托盘': 50,
-        'mfg|艾博格|托盘': 50,
         'mfg|华凌|托盘': 50,
         'mfg|兰泰|托盘': 50,
         'mfg|荣嘉|托盘': 50,
@@ -2196,6 +2002,73 @@ function buildAlertTables(date) {
 
 buildAlertTables(alertSelectedDate);
 buildSummary();
+
+// =====================================================================
+// 板块四：托盘供应商趋势对比折线图
+// =====================================================================
+function buildPalletTrendChart() {
+    const container = document.getElementById('palletTrendContainer');
+    if (!container) return;
+
+    // 取出所有"托盘"类别的 series，按当前合计降序
+    const palletSeries = timeSeries
+        .filter(s => s.cat === '托盘')
+        .sort((a, b) => (b.data[latestDate] || 0) - (a.data[latestDate] || 0));
+
+    if (palletSeries.length === 0) {
+        container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无托盘数据</p>';
+        return;
+    }
+
+    const datasets = palletSeries.map((s, i) => ({
+        label: s.supplier + ' (' + ZONE_NAMES[s.zone] + ')',
+        data: dates.map(d => s.data[d] || 0),
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: COLORS[i % COLORS.length] + '22',
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        fill: false
+    }));
+
+    const ctx = document.getElementById('palletTrendChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: dates, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { boxWidth: 12, font: { size: 11 }, padding: 6 }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: { label: c => c.dataset.label + ': ' + c.raw + ' 个' }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: '托盘数量（个）' } },
+                x: { title: { display: true, text: '日期' } }
+            },
+            interaction: { mode: 'index', intersect: false }
+        }
+    });
+
+    // 图例下方的说明
+    const legend = document.getElementById('palletTrendLegend');
+    if (legend) {
+        const totalCur = palletSeries.reduce((s, x) => s + (x.data[latestDate] || 0), 0);
+        legend.innerHTML = '共有 <strong>' + palletSeries.length + '</strong> 家托盘供应商 | 最新 ' +
+            latestDate + ' 合计：<strong>' + totalCur + '</strong> 个 | 点击图例可切换显示';
+    }
+}
+buildPalletTrendChart();
 
 // =====================================================================
 // 跨区域供应商详情弹窗
