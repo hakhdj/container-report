@@ -290,13 +290,13 @@
 </div>
 
 <!-- ================================================================== -->
-<!-- 板块四：托盘供应商趋势对比折线图 -->
+<!-- 板块四：智造港托盘供应商趋势 -->
 <!-- ================================================================== -->
 <div class="section-block">
-    <h2 class="section-title">🛤️ 四、托盘供应商趋势对比 <span class="num">（仅展示有托盘数据的供应商）</span></h2>
-    <div id="palletTrendContainer" style="background:white;padding:16px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-        <canvas id="palletTrendChart" style="max-height:420px;"></canvas>
-        <div id="palletTrendLegend" style="margin-top:10px;font-size:12px;color:#666;"></div>
+    <h2 class="section-title">🛤️ 四、智造港托盘供应商趋势 <span class="num">（选择日期，查看托盘对比；点击供应商查看趋势）</span></h2>
+    <div id="palletTrendContainer">
+        <div class="date-selector" id="palletDateSelector"></div>
+        <div id="palletMfgTable"></div>
     </div>
 </div>
 
@@ -723,10 +723,6 @@ const TIMELINE = {
                         qty: 30
                     },
                     {
-                        supplier: '飞马',
-                        qty: 32
-                    },
-                    {
                         supplier: '中鑫',
                         qty: 70
                     },
@@ -924,10 +920,6 @@ const TIMELINE = {
                         qty: 45
                     },
                     {
-                        supplier: '飞马',
-                        qty: 24
-                    },
-                    {
                         supplier: '中鑫',
                         qty: 72
                     },
@@ -1103,7 +1095,12 @@ const TIMELINE = {
                 ]
             },
             intel: {
-                box: [],
+                box: [
+                    {
+                        supplier: '顶邦',
+                        qty: 150
+                    }
+                ],
                 rack: [
                     {
                         supplier: '豪派',
@@ -1232,10 +1229,6 @@ const TIMELINE = {
                     {
                         supplier: '华裕',
                         qty: 24
-                    },
-                    {
-                        supplier: '飞马',
-                        qty: 20
                     },
                     {
                         supplier: '中鑫',
@@ -1495,10 +1488,6 @@ const TIMELINE = {
                         qty: 45
                     },
                     {
-                        supplier: '飞马',
-                        qty: 42
-                    },
-                    {
                         supplier: '中鑫',
                         qty: 90
                     },
@@ -1598,6 +1587,7 @@ const STANDARD = {
         'tech|佳恒|胶框': 200,
         'tech|英华达|胶框': 350,
         'tech|华江|胶框': 350,
+        'tech|华凌|胶框': 350,
         'tech|晟恩|胶框': 350,
         'tech|美宝龙|胶框': 350,
         'tech|威正达|胶框': 150,
@@ -1613,7 +1603,6 @@ const STANDARD = {
         'tech|博兰得|可折叠胶框': 350,
         'tech|力邦|胶框': 350,
         'tech|庆瓯|胶框': 1000,
-        'tech|日盈|胶框': 200,
         'tech|华瑞|胶框': 200,
         'tech|保镖|胶框': 1000,
         'tech|力诺|胶框': 300,
@@ -1635,7 +1624,7 @@ const STANDARD = {
         'tech|金正大|胶框': 150,
         'tech|友民|胶框': 200,
         'tech|豪派|胶框': 150,
-        'tech|金邦|不可���叠胶框': 150,
+        'tech|金邦|胶框': 150,
         'tech|卓域|可折叠胶框': 200,
         'tech|荣嘉|胶框': 150,
         'tech|中奇|胶框': 300,
@@ -1649,7 +1638,6 @@ const STANDARD = {
         'tech|锦福|胶框': 300,
         'tech|顶邦|胶框': 330,
         'tech|华裕|架子': 30,
-        'tech|飞马|架子': 30,
         'tech|华格|胶框': 300,
         'tech|聚诚|胶框': 330,
         'tech|联友|胶框': 330,
@@ -1657,9 +1645,9 @@ const STANDARD = {
         'tech|中鑫|架子': 50,
         'tech|乾阳|架子': 50,
         'tech|金正大|架子': 50,
-        'tech|朗爵|架子': 30,
         'intel|联友|胶框': 300,
         'intel|淄铭|胶框': 300,
+        'intel|顶邦|胶框': 300,
         'intel|金铂利|胶框': 300,
         'intel|华格|胶框': 300,
         'intel|益捷|胶框': 300,
@@ -1686,6 +1674,7 @@ const STANDARD = {
         'mfg|德普|胶框': 600,
         'mfg|创领|胶框': 400,
         'mfg|鑫源|胶框': 400,
+        'mfg|华格|胶框': 400,
         'mfg|华凌|胶框': 600,
         'mfg|嘉宏|胶框': 400,
         'mfg|友民|胶框': 500,
@@ -1728,6 +1717,7 @@ const STANDARD = {
         'mfg|领贯|托盘': 50,
         'mfg|绿嘉壹|托盘': 50,
         'mfg|易宏|托盘': 50,
+        'mfg|寅明|托盘': 50,
         'mfg|宇嘉|托盘': 50,
         'mfg|中鑫|托盘': 50,
         'mfg|鑫源|托盘': 50,
@@ -1743,7 +1733,6 @@ const STANDARD = {
         'mfg|浩全|托盘': 50,
         'mfg|星煜|托盘': 50,
         'mfg|雄鑫|托盘': 50,
-        'mfg|庆瓯|托盘': 50,
         'mfg|金邦|托盘': 50,
         'mfg|西普尔|托盘': 50,
         'mfg|艾博格|托盘': 50,
@@ -2286,75 +2275,143 @@ buildAlertTables(alertSelectedDate);
 buildSummary();
 
 // =====================================================================
-// 板块四：托盘供应商趋势对比折线图
+// 板块四：智造港托盘供应商趋势
 // =====================================================================
-function buildPalletTrendChart() {
-    const container = document.getElementById('palletTrendContainer');
-    if (!container) return;
+const PALLET_ZONE = 'mfg';
+const PALLET_START_DATE = '07-28';
+const palletDateSelector = document.getElementById('palletDateSelector');
+const palletMfgTable = document.getElementById('palletMfgTable');
+let palletSelectedDate = latestDate;
 
-    // 托盘对比起始日期：7月28日（'07-28'），只展示此日期及之后的趋势
-    const PALLET_START_DATE = '07-28';
-    const palletDates = dates.filter(d => d >= PALLET_START_DATE);
+// 日期按钮：只展示 >= PALLET_START_DATE 的日期
+dates.filter(d => d >= PALLET_START_DATE).forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'date-btn' + (d === palletSelectedDate ? ' active' : '');
+    btn.textContent = dateLabel[d] || d;
+    btn.onclick = function() {
+        document.querySelectorAll('#palletDateSelector .date-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        palletSelectedDate = d;
+        buildPalletMfgTable(d);
+    };
+    palletDateSelector.appendChild(btn);
+});
 
-    // 取出所有"托盘"类别的 series，按当前合计降序
-    const palletSeries = timeSeries
-        .filter(s => s.cat === '托盘')
-        .sort((a, b) => (b.data[latestDate] || 0) - (a.data[latestDate] || 0));
+function buildPalletMfgTable(date) {
+    const idx = dates.indexOf(date);
+    const prevD = idx > 0 ? dates[idx - 1] : null;
 
-    if (palletSeries.length === 0 || palletDates.length === 0) {
-        container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无托盘数据（数据从 ' + PALLET_START_DATE + ' 起算）</p>';
+    // 智造港区域所有托盘 series
+    const palletSeries = timeSeries.filter(s => s.zone === PALLET_ZONE && s.cat === '托盘');
+
+    // 按当日托盘数量降序
+    const rows = palletSeries.map(s => ({
+        name: s.supplier,
+        qty: s.data[date] || 0,
+        prev: prevD ? (s.data[prevD] || 0) : 0,
+        series: s
+    })).sort((a, b) => b.qty - a.qty);
+
+    if (rows.length === 0) {
+        palletMfgTable.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无智造港托盘数据</p>';
         return;
     }
 
-    const datasets = palletSeries.map((s, i) => ({
-        label: s.supplier + ' (' + ZONE_NAMES[s.zone] + ')',
-        data: palletDates.map(d => s.data[d] || 0),
-        borderColor: COLORS[i % COLORS.length],
-        backgroundColor: COLORS[i % COLORS.length] + '22',
-        tension: 0.3,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        borderWidth: 2,
-        fill: false
-    }));
+    let html = '<div class="card"><h3><span class="zone-header ' + PALLET_ZONE + '">智造港 托盘</span></h3>';
+    html += '<table><thead><tr><th>排名</th><th>供应商</th><th>当日托盘</th><th>较前一日</th><th>标准线</th><th>状态</th></tr></thead><tbody>';
 
-    const ctx = document.getElementById('palletTrendChart');
-    if (!ctx) return;
-
-    new Chart(ctx, {
-        type: 'line',
-        data: { labels: palletDates, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { boxWidth: 12, font: { size: 11 }, padding: 6 }
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: { label: c => c.dataset.label + ': ' + c.raw + ' 个' }
-                }
-            },
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: '托盘数量（个）' } },
-                x: { title: { display: true, text: '日期（自 ' + PALLET_START_DATE + ' 起）' } }
-            },
-            interaction: { mode: 'index', intersect: false }
-        }
+    rows.forEach((r, i) => {
+        const limit = getLimit(PALLET_ZONE, r.name, '托盘');
+        const status = getStatus(r.qty, limit);
+        html += '<tr>';
+        html += '<td class="rank-num">' + (i + 1) + '</td>';
+        html += '<td><a class="supplier-link" onclick="showPalletSupplierDetail(\'' + r.name + '\')">' + r.name + '</a></td>';
+        html += '<td><strong>' + r.qty + '</strong></td>';
+        html += '<td>' + (prevD ? trendIcon(r.qty, r.prev) : '—') + '</td>';
+        html += '<td>' + (limit !== null ? limit : '-') + '</td>';
+        html += '<td>' + status + '</td>';
+        html += '</tr>';
     });
-
-    // 图例下方的说明
-    const legend = document.getElementById('palletTrendLegend');
-    if (legend) {
-        const totalCur = palletSeries.reduce((s, x) => s + (x.data[latestDate] || 0), 0);
-        legend.innerHTML = '共有 <strong>' + palletSeries.length + '</strong> 家托盘供应商 | 起算日期 ' +
-            PALLET_START_DATE + ' | 最新 ' + latestDate + ' 合计：<strong>' + totalCur + '</strong> 个 | 点击图例可切换显示';
-    }
+    html += '</tbody></table></div>';
+    palletMfgTable.innerHTML = html;
 }
-buildPalletTrendChart();
+
+function showPalletSupplierDetail(name) {
+    const s = timeSeries.find(x => x.zone === PALLET_ZONE && x.supplier === name && x.cat === '托盘');
+    if (!s) return;
+
+    document.getElementById('modalTitle').textContent = name + ' (智造港) - 托盘趋势';
+
+    const palletDates = dates.filter(d => d >= PALLET_START_DATE);
+    const limit = getLimit(PALLET_ZONE, name, '托盘');
+
+    let html = '<div style="margin-bottom:20px;padding:12px 16px;background:#f0f5ff;border-radius:8px;">';
+    html += '<strong>当前托盘数量：</strong>' + (s.data[latestDate] || 0) + ' 个 &nbsp;|&nbsp; ';
+    html += '<strong>标准线：</strong>' + (limit !== null ? limit + ' 个' : '未设置') + ' &nbsp;|&nbsp; ';
+    html += getStatus(s.data[latestDate] || 0, limit);
+    html += '</div>';
+
+    html += '<div class="modal-grid"><div class="modal-card" style="grid-column:1 / -1;">';
+    html += '<h4>托盘趋势（智造港，自 ' + PALLET_START_DATE + ' 起）</h4>';
+    html += '<canvas id="palletDetailChart" style="max-height:340px;"></canvas>';
+    html += '<div style="font-size:12px;color:#666;margin-top:8px;">';
+    palletDates.forEach((d, di) => {
+        html += d + ': <strong>' + (s.data[d] || 0) + '</strong>';
+        if (di < palletDates.length - 1) html += ' | ';
+    });
+    html += '</div></div></div>';
+
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('supplierModal').classList.add('active');
+
+    setTimeout(() => {
+        const ctx = document.getElementById('palletDetailChart');
+        if (!ctx) return;
+
+        const datasets = [{
+            label: '托盘数量',
+            data: palletDates.map(d => s.data[d] || 0),
+            borderColor: '#2563eb',
+            backgroundColor: '#2563eb22',
+            tension: 0.3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderWidth: 2.5,
+            fill: false
+        }];
+
+        if (limit !== null) {
+            datasets.push({
+                label: '标准线',
+                data: palletDates.map(() => limit),
+                borderColor: '#dc2626',
+                borderWidth: 2,
+                borderDash: [5, 3],
+                pointRadius: 0,
+                fill: false,
+                tension: 0
+            });
+        }
+
+        new Chart(ctx, {
+            type: 'line',
+            data: { labels: palletDates, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw + ' 个' } }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: '托盘数量（个）' } },
+                    x: { title: { display: true, text: '日期' } }
+                }
+            }
+        });
+    }, 50);
+}
+buildPalletMfgTable(palletSelectedDate);
 
 // =====================================================================
 // 跨区域供应商详情弹窗
