@@ -341,6 +341,196 @@
 // 多天数据
 // =====================================================================
 const TIMELINE = {
+        '07-26': {
+            tech: {
+                box: [
+                    {
+                        supplier: '联宝',
+                        qty: 180
+                    },
+                    {
+                        supplier: '佳恒',
+                        qty: 150
+                    },
+                    {
+                        supplier: '英华达',
+                        qty: 430
+                    },
+                    {
+                        supplier: '华江',
+                        qty: 150
+                    },
+                    {
+                        supplier: '美宝龙',
+                        qty: 700
+                    },
+                    {
+                        supplier: '浩全',
+                        qty: 170
+                    },
+                    {
+                        supplier: '博康',
+                        qty: 330
+                    },
+                    {
+                        supplier: '力邦',
+                        qty: 700
+                    },
+                    {
+                        supplier: '庆瓯',
+                        qty: 600
+                    },
+                    {
+                        supplier: '艾博格',
+                        qty: 240
+                    },
+                    {
+                        supplier: '雄鑫',
+                        qty: 540
+                    },
+                    {
+                        supplier: '英利',
+                        qty: 200,
+                        cat: '可折叠胶框'
+                    },
+                    {
+                        supplier: '鑫源',
+                        qty: 210
+                    },
+                    {
+                        supplier: '豪派',
+                        qty: 200
+                    },
+                    {
+                        supplier: '金邦',
+                        qty: 200
+                    },
+                    {
+                        supplier: '卓域',
+                        qty: 200,
+                        cat: '可折叠胶框'
+                    },
+                    {
+                        supplier: '淄铭',
+                        qty: 1000
+                    },
+                    {
+                        supplier: '锦福',
+                        qty: 300
+                    },
+                    {
+                        supplier: '顶邦',
+                        qty: 200
+                    },
+                    {
+                        supplier: '联友',
+                        qty: 1200
+                    }
+                ],
+                rack: [
+                    {
+                        supplier: '韩森源',
+                        qty: 60
+                    },
+                    {
+                        supplier: '金邦',
+                        qty: 25
+                    },
+                    {
+                        supplier: '豪派',
+                        qty: 20
+                    },
+                    {
+                        supplier: '创领',
+                        qty: 47
+                    },
+                    {
+                        supplier: '华裕',
+                        qty: 45
+                    },
+                    {
+                        supplier: '飞马',
+                        qty: 24
+                    },
+                    {
+                        supplier: '中鑫',
+                        qty: 72
+                    },
+                    {
+                        supplier: '金正大',
+                        qty: 120
+                    }
+                ],
+                pallet: [],
+                iron: [
+                    {
+                        supplier: '华裕',
+                        qty: 86,
+                        cat: '可折叠铁框'
+                    }
+                ]
+            },
+            intel: {
+                box: [
+                    {
+                        supplier: '联友',
+                        qty: 190
+                    }
+                ],
+                rack: [
+                    {
+                        supplier: '豪派',
+                        qty: 45
+                    },
+                    {
+                        supplier: '创领',
+                        qty: 23
+                    }
+                ],
+                pallet: [],
+                iron: []
+            },
+            mfg: {
+                box: [
+                    {
+                        supplier: '誉隆',
+                        qty: 600
+                    },
+                    {
+                        supplier: '英华达',
+                        qty: 230
+                    },
+                    {
+                        supplier: '联宝',
+                        qty: 200
+                    },
+                    {
+                        supplier: '大环',
+                        qty: 900,
+                        cat: '可折叠胶框'
+                    }
+                ],
+                rack: [
+                    {
+                        supplier: '远星',
+                        qty: 16
+                    }
+                ],
+                pallet: [],
+                iron: [
+                    {
+                        supplier: '誉隆',
+                        qty: 5000,
+                        cat: 'PE折叠箱'
+                    },
+                    {
+                        supplier: '华日',
+                        qty: 1500,
+                        cat: 'PE折叠箱'
+                    }
+                ]
+            }
+        },
         '07-25': {
             tech: {
                 box: [
@@ -544,196 +734,6 @@ const TIMELINE = {
                     {
                         supplier: '华日',
                         qty: 3000,
-                        cat: 'PE折叠箱'
-                    }
-                ]
-            }
-        },
-        '07-26': {
-            tech: {
-                box: [
-                    {
-                        supplier: '联宝',
-                        qty: 180
-                    },
-                    {
-                        supplier: '佳恒',
-                        qty: 150
-                    },
-                    {
-                        supplier: '英华达',
-                        qty: 430
-                    },
-                    {
-                        supplier: '华江',
-                        qty: 150
-                    },
-                    {
-                        supplier: '美宝龙',
-                        qty: 700
-                    },
-                    {
-                        supplier: '浩全',
-                        qty: 170
-                    },
-                    {
-                        supplier: '博康',
-                        qty: 330
-                    },
-                    {
-                        supplier: '力邦',
-                        qty: 700
-                    },
-                    {
-                        supplier: '庆瓯',
-                        qty: 600
-                    },
-                    {
-                        supplier: '艾博格',
-                        qty: 240
-                    },
-                    {
-                        supplier: '雄鑫',
-                        qty: 540
-                    },
-                    {
-                        supplier: '英利',
-                        qty: 200,
-                        cat: '可折叠胶框'
-                    },
-                    {
-                        supplier: '鑫源',
-                        qty: 210
-                    },
-                    {
-                        supplier: '豪派',
-                        qty: 200
-                    },
-                    {
-                        supplier: '金邦',
-                        qty: 200
-                    },
-                    {
-                        supplier: '卓域',
-                        qty: 200,
-                        cat: '可折叠胶框'
-                    },
-                    {
-                        supplier: '淄铭',
-                        qty: 1000
-                    },
-                    {
-                        supplier: '锦福',
-                        qty: 300
-                    },
-                    {
-                        supplier: '顶邦',
-                        qty: 200
-                    },
-                    {
-                        supplier: '联友',
-                        qty: 1200
-                    }
-                ],
-                rack: [
-                    {
-                        supplier: '韩森源',
-                        qty: 60
-                    },
-                    {
-                        supplier: '金邦',
-                        qty: 25
-                    },
-                    {
-                        supplier: '豪派',
-                        qty: 20
-                    },
-                    {
-                        supplier: '创领',
-                        qty: 47
-                    },
-                    {
-                        supplier: '华裕',
-                        qty: 45
-                    },
-                    {
-                        supplier: '飞马',
-                        qty: 24
-                    },
-                    {
-                        supplier: '中鑫',
-                        qty: 72
-                    },
-                    {
-                        supplier: '金正大',
-                        qty: 120
-                    }
-                ],
-                pallet: [],
-                iron: [
-                    {
-                        supplier: '华裕',
-                        qty: 86,
-                        cat: '可折叠铁框'
-                    }
-                ]
-            },
-            intel: {
-                box: [
-                    {
-                        supplier: '联友',
-                        qty: 190
-                    }
-                ],
-                rack: [
-                    {
-                        supplier: '豪派',
-                        qty: 45
-                    },
-                    {
-                        supplier: '创领',
-                        qty: 23
-                    }
-                ],
-                pallet: [],
-                iron: []
-            },
-            mfg: {
-                box: [
-                    {
-                        supplier: '誉隆',
-                        qty: 600
-                    },
-                    {
-                        supplier: '英华达',
-                        qty: 230
-                    },
-                    {
-                        supplier: '联宝',
-                        qty: 200
-                    },
-                    {
-                        supplier: '大环',
-                        qty: 900,
-                        cat: '可折叠胶框'
-                    }
-                ],
-                rack: [
-                    {
-                        supplier: '远星',
-                        qty: 16
-                    }
-                ],
-                pallet: [],
-                iron: [
-                    {
-                        supplier: '誉隆',
-                        qty: 5000,
-                        cat: 'PE折叠箱'
-                    },
-                    {
-                        supplier: '华日',
-                        qty: 1500,
                         cat: 'PE折叠箱'
                     }
                 ]
@@ -1706,6 +1706,10 @@ const TIMELINE = {
             mfg: {
                 box: [
                     {
+                        supplier: '博康',
+                        qty: 35
+                    },
+                    {
                         supplier: '威正达',
                         qty: 300
                     },
@@ -1835,7 +1839,7 @@ const TIMELINE = {
                         qty: 10
                     },
                     {
-                        supplier: '易宏',
+                        supplier: '',
                         qty: 84
                     },
                     {
@@ -1986,6 +1990,7 @@ const STANDARD = {
         'intel|创领|架子': 20,
         'intel|金邦|架子': 20,
         'mfg|荣嘉|胶框': 300,
+        'mfg|博康|胶框': 300,
         'mfg|威正达|胶框': 300,
         'mfg|浩全|胶框': 300,
         'mfg|华凯|胶框': 300,
@@ -2046,7 +2051,6 @@ const STANDARD = {
         'mfg|华裕|托盘': 50,
         'mfg|领贯|托盘': 50,
         'mfg|绿嘉壹|托盘': 50,
-        'mfg|易宏|托盘': 50,
         'mfg|寅明|托盘': 50,
         'mfg|宇嘉|托盘': 50,
         'mfg|中鑫|托盘': 50,
