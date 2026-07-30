@@ -1,9 +1,9 @@
 name: 自动更新供应商空容器报表
 
 on:
-  # 定时拉取腾讯文档数据（每 30 分钟）
+  # 每 5 分钟检查一次腾讯文档是否有更新
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
   # 手动触发
   workflow_dispatch:
   # 推送触发
@@ -23,9 +23,43 @@ jobs:
         uses: actions/checkout@v4
 
       # ============================================================
+      # 检查腾讯文档是否有更新（对比 last_modify_time）
+      # ============================================================
+      - name: Check if Tencent Doc has been modified
+        id: check-doc
+        env:
+          TENCENT_DOCS_TOKEN: ${{ secrets.TENCENT_DOCS_TOKEN }}
+          TENCENT_SMARTSHEET_FILE_ID: ${{ secrets.TENCENT_SMARTSHEET_FILE_ID }}
+        run: |
+          NOW_MODIFY=$(curl -s -X POST 'https://docs.qq.com/openapi/mcp' \
+            -H "Authorization: ${TENCENT_DOCS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"manage.query_file_info","arguments":{"file_id":"'"${TENCENT_SMARTSHEET_FILE_ID}"'"}}}' \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); c=d['result']['content'][0]['text']; print(json.loads(c).get('last_modify_time','0'))" 2>/dev/null || echo "0")
+          echo "当前文档修改时间戳: ${NOW_MODIFY}"
+
+          # 读取上次记录的修改时间
+          if [ -f .last_modify ]; then
+            LAST_MODIFY=$(cat .last_modify)
+          else
+            LAST_MODIFY="0"
+          fi
+          echo "上次记录修改时间戳: ${LAST_MODIFY}"
+
+          if [ "${NOW_MODIFY}" = "${LAST_MODIFY}" ] && [ "${NOW_MODIFY}" != "0" ]; then
+            echo "文档未修改，跳过更新"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "文档已修改，将拉取最新数据"
+            echo "${NOW_MODIFY}" > .last_modify
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      # ============================================================
       # 从腾讯文档 MCP 拉取数据并更新 HTML
       # ============================================================
       - name: Process Tencent Docs data and update HTML
+        if: steps.check-doc.outputs.changed == 'true'
         env:
           TENCENT_DOCS_TOKEN: ${{ secrets.TENCENT_DOCS_TOKEN }}
           TENCENT_SMARTSHEET_FILE_ID: ${{ secrets.TENCENT_SMARTSHEET_FILE_ID }}
@@ -50,8 +84,8 @@ jobs:
           git config user.name "auto-update"
           git config user.email "auto@update.bot"
           git pull --rebase origin main || true
-          git add index.html
-          git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')"
+          git add index.html .last_modify
+          git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')" || echo "no changes to commit"
           git push
 
       - name: Setup Pages
