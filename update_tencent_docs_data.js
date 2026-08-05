@@ -1,57 +1,26 @@
 // update_tencent_docs_data.js - 从腾讯文档 MCP 拉取数据更新 HTML 报表
-const fs = require('fs');
-const https = require('https');
+'use strict';
 
-const TOKEN = process.env.TENCENT_DOCS_TOKEN;
+const fs = require('fs');
+const { callMCP, extractTextJson } = require('./tencent_mcp');
+
 const FILE_ID = process.env.TENCENT_SMARTSHEET_FILE_ID;
 const SHEET_ID = process.env.TENCENT_SMARTSHEET_SHEET_ID;
-const MCP_URL = 'https://docs.qq.com/openapi/mcp';
-
-if (!TOKEN || !FILE_ID || !SHEET_ID) {
-    console.error('❌ 缺少环境变量: TENCENT_DOCS_TOKEN / TENCENT_SMARTSHEET_FILE_ID / TENCENT_SMARTSHEET_SHEET_ID');
-    process.exit(1);
-}
-
-// 调用 MCP JSON-RPC
-function callMCP(name, args) {
-    return new Promise((resolve, reject) => {
-        const body = JSON.stringify({
-            jsonrpc: '2.0',
-            id: Math.floor(Math.random() * 10000),
-            method: 'tools/call',
-            params: { name, arguments: args }
-        });
-        const options = {
-            hostname: 'docs.qq.com',
-            path: '/openapi/mcp',
-            method: 'POST',
-            headers: {
-                'Authorization': TOKEN,
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body)
-            }
-        };
-        const req = https.request(options, (res) => {
-            let data = '';
-            res.on('data', (d) => data += d);
-            res.on('end', () => {
-                try { resolve(JSON.parse(data)); }
-                catch (e) { reject(e); }
-            });
-        });
-        req.on('error', reject);
-        req.write(body);
-        req.end();
-    });
-}
+const LAST_MODIFY = process.env.TENCENT_LAST_MODIFY;
 
 // 分页拉取所有记录
 async function fetchAllRecords() {
     const allRecords = [];
+    const seenOffsets = new Set();
     let offset = 0;
     const pageSize = 100;
 
-    while (true) {
+    for (let page = 1; page <= 1000; page += 1) {
+        if (seenOffsets.has(offset)) {
+            throw new Error(`腾讯文档分页游标重复: ${offset}`);
+        }
+        seenOffsets.add(offset);
+
         console.log(`  拉取第 ${offset + 1}-${offset + pageSize} 条...`);
         const resp = await callMCP('smartsheet.list_records', {
             file_id: FILE_ID,
@@ -60,37 +29,24 @@ async function fetchAllRecords() {
             offset: offset
         });
 
-        if (resp.error) {
-            console.error('❌ 拉取记录失败:', JSON.stringify(resp.error));
-            process.exit(1);
-        }
-
-        const content = resp.result?.content;
-        if (!Array.isArray(content) || content.length === 0) {
-            console.error('❌ 返回内容为空');
-            process.exit(1);
-        }
-
-        let parsed;
-        for (const c of content) {
-            if (c.type === 'text') {
-                try { parsed = JSON.parse(c.text); break; }
-                catch (e) { /* 试下一个 */ }
-            }
-        }
-
-        if (!parsed) {
-            console.error('❌ 无法解析返回内容');
-            process.exit(1);
-        }
+        const parsed = extractTextJson(resp);
 
         const records = parsed.records || [];
+        if (!Array.isArray(records)) {
+            throw new Error('腾讯文档 records 不是数组');
+        }
         allRecords.push(...records);
         console.log(`  已获取 ${records.length} 条，累计 ${allRecords.length} 条`);
 
         if (!parsed.has_more) break;
-        offset = parsed.next || (offset + pageSize);
-        if (!parsed.next) break;
+        const nextOffset = Number(parsed.next);
+        offset = Number.isFinite(nextOffset) && nextOffset > offset
+            ? nextOffset
+            : offset + pageSize;
+
+        if (page === 1000) {
+            throw new Error('腾讯文档记录超过 1000 页，已停止以避免无限循环');
+        }
     }
 
     return allRecords;
@@ -161,7 +117,11 @@ function parseDateKey(key) {
 
 const knownNonDataFields = ['区域', '供应商', '容器类别', '标准线', '备注', '备注说明'];
 
-(async () => {
+async function main() {
+    if (!process.env.TENCENT_DOCS_TOKEN || !FILE_ID || !SHEET_ID) {
+        throw new Error('缺少环境变量: TENCENT_DOCS_TOKEN / TENCENT_SMARTSHEET_FILE_ID / TENCENT_SMARTSHEET_SHEET_ID');
+    }
+
     console.log('开始拉取腾讯文档数据...');
     const records = await fetchAllRecords();
     console.log(`✅ 共拉取 ${records.length} 条记录`);
@@ -254,84 +214,60 @@ const knownNonDataFields = ['区域', '供应商', '容器类别', '标准线', 
     // 读取 HTML
     const html = fs.readFileSync('index.html', 'utf-8');
 
-    function toJsLiteral(obj, indent = 4) {
-        const sp = ' '.repeat(indent);
-        const sp2 = ' '.repeat(indent + 4);
-        if (Array.isArray(obj)) {
-            if (obj.length === 0) return '[]';
-            const items = obj.map(item => toJsLiteral(item, indent + 4));
-            return '[\n' + sp2 + items.join(',\n' + sp2) + '\n' + sp + ']';
-        }
-        if (typeof obj === 'object' && obj !== null) {
-            const pairs = [];
-            for (const [k, v] of Object.entries(obj)) {
-                const key = k.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/) ? k : "'" + k + "'";
-                pairs.push(key + ': ' + toJsLiteral(v, indent + 4));
-            }
-            return '{\n' + sp2 + pairs.join(',\n' + sp2) + '\n' + sp + '}';
-        }
-        if (typeof obj === 'string') return "'" + obj + "'";
-        return String(obj);
+    function toSafeJsLiteral(obj) {
+        return JSON.stringify(obj, null, 4)
+            .replace(/</g, '\\u003c')
+            .replace(/\u2028/g, '\\u2028')
+            .replace(/\u2029/g, '\\u2029');
     }
 
-    const timelineStr = 'const TIMELINE = ' + toJsLiteral(TIMELINE) + ';';
+    const timelineStr = 'const TIMELINE = ' + toSafeJsLiteral(TIMELINE) + ';';
     const timelineRegex = /const TIMELINE = \{[\s\S]*?\};/;
+    if (!timelineRegex.test(html)) throw new Error('index.html 中未找到 TIMELINE 数据块');
     let newHtml = html.replace(timelineRegex, timelineStr);
 
-    const standardStr = 'const STANDARD = ' + toJsLiteral(STANDARD) + ';';
+    const standardStr = 'const STANDARD = ' + toSafeJsLiteral(STANDARD) + ';';
     const standardRegex = /const STANDARD = \{[\s\S]*?\};/;
+    if (!standardRegex.test(newHtml)) throw new Error('index.html 中未找到 STANDARD 数据块');
     newHtml = newHtml.replace(standardRegex, standardStr);
 
-    if (newHtml === html) {
-        console.log('❌ HTML 未变化');
-        process.exit(1);
-    }
-
-    // 拉取文档最后修改时间作为"数据截止"时间
-    let cutoffStr = '';
-    try {
-        const infoResp = await callMCP('manage.query_file_info', { file_id: FILE_ID });
-        const infoContent = infoResp.result?.content;
-        let infoParsed;
-        if (Array.isArray(infoContent)) {
-            for (const c of infoContent) {
-                if (c.type === 'text') { try { infoParsed = JSON.parse(c.text); break; } catch (e) {} }
-            }
-        }
-        const lmt = infoParsed?.last_modify_time;
-        if (lmt) {
-            // 使用北京时区格式化，避免 GitHub Actions UTC 环境下显示错误时间
-            const fmt = new Intl.DateTimeFormat('zh-CN', {
-                timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: false
-            });
-            // 输出形如 "2026/7/28 08:43"
-            const parts = {};
-            for (const p of fmt.formatToParts(new Date(Number(lmt)))) parts[p.type] = p.value;
-            cutoffStr = `${parts.year}年${Number(parts.month)}月${Number(parts.day)}日 ${parts.hour}:${parts.minute}`;
-            console.log('文档最后修改时间:', cutoffStr);
-        }
-    } catch (e) {
-        console.log('⚠️ 获取文档修改时间失败:', e.message);
-    }
-    if (!cutoffStr) {
-        const now = new Date();
-        const fmt = new Intl.DateTimeFormat('zh-CN', {
-            timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', hour12: false
-        });
-        const parts = {};
-        for (const p of fmt.formatToParts(now)) parts[p.type] = p.value;
-        cutoffStr = `${parts.year}年${Number(parts.month)}月${Number(parts.day)}日 ${parts.hour}:${parts.minute}`;
-        console.log('使用脚本运行时间作为截止时间:', cutoffStr);
-    }
+    // 复用检查步骤取得的修改时间，避免再次调用腾讯文档接口。
+    const cutoffDate = /^\d+$/.test(LAST_MODIFY || '')
+        ? new Date(Number(LAST_MODIFY))
+        : new Date();
+    const fmt = new Intl.DateTimeFormat('zh-CN', {
+        timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const parts = {};
+    for (const p of fmt.formatToParts(cutoffDate)) parts[p.type] = p.value;
+    const cutoffStr = `${parts.year}年${Number(parts.month)}月${Number(parts.day)}日 ${parts.hour}:${parts.minute}`;
+    console.log('文档最后修改时间:', cutoffStr);
 
     const dateUpdate = newHtml.replace(
         /数据截止：[^<\|]*/,
         '数据截止：' + cutoffStr
     );
 
-    fs.writeFileSync('index.html', dateUpdate, 'utf-8');
-    console.log('✅ HTML 报表更新成功！');
+    if (dateUpdate === html) {
+        console.log('ℹ️ HTML 内容未变化');
+    } else {
+        fs.writeFileSync('index.html', dateUpdate, 'utf-8');
+        console.log('✅ HTML 报表更新成功！');
+    }
     console.log('更新时间:', new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }));
-})();
+}
+
+if (require.main === module) {
+    main().catch(error => {
+        console.error(`❌ 更新腾讯文档数据失败: ${error.message}`);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = {
+    fetchAllRecords,
+    main,
+    parseDateKey,
+    recordToRow
+};

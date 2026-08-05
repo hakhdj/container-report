@@ -1,106 +1,139 @@
 name: 自动更新供应商空容器报表
 
 on:
-  # 每 5 分钟检查一次腾讯文档是否有更新（GitHub 对 cron 有节流，仅作兜底）
+  # 避开每小时整点的 GitHub Actions 高峰；GitHub cron 仍不承诺准点执行。
   schedule:
-    - cron: '*/5 * * * *'
-  # 手动触发
+    - cron: '2-59/5 * * * *'
   workflow_dispatch:
-  # 推送触发
-  push:
-    branches: [main]
-  # 飞书定时检查推送的信号（真正实现近实时更新）
+    inputs:
+      force_refresh:
+        description: 忽略修改时间并强制重新拉取腾讯文档
+        required: false
+        type: boolean
+        default: false
   repository_dispatch:
     types: [update-report]
+  # 人工修改网页或工作流后重新部署 Pages；不重复拉取腾讯文档。
+  push:
+    branches: [main]
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+concurrency:
+  group: container-report-update
+  cancel-in-progress: false
 
 jobs:
   update-report:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    outputs:
+      html_changed: ${{ steps.changes.outputs.html_changed }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # ============================================================
-      # 检查腾讯文档是否有更新（对比 last_modify_time）
-      # ============================================================
-      - name: Check if Tencent Doc has been modified
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Tencent Docs modification time
         id: check-doc
         env:
           TENCENT_DOCS_TOKEN: ${{ secrets.TENCENT_DOCS_TOKEN }}
           TENCENT_SMARTSHEET_FILE_ID: ${{ secrets.TENCENT_SMARTSHEET_FILE_ID }}
-        run: |
-          NOW_MODIFY=$(curl -s -X POST 'https://docs.qq.com/openapi/mcp' \
-            -H "Authorization: ${TENCENT_DOCS_TOKEN}" \
-            -H 'Content-Type: application/json' \
-            -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"manage.query_file_info","arguments":{"file_id":"'"${TENCENT_SMARTSHEET_FILE_ID}"'"}}}' \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); c=d['result']['content'][0]['text']; print(json.loads(c).get('last_modify_time','0'))" 2>/dev/null || echo "0")
-          echo "当前文档修改时间戳: ${NOW_MODIFY}"
+          FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_refresh || 'false' }}
+        run: node check_tencent_doc.js
 
-          # 读取上次记录的修改时间
-          if [ -f .last_modify ]; then
-            LAST_MODIFY=$(cat .last_modify)
-          else
-            LAST_MODIFY="0"
-          fi
-          echo "上次记录修改时间戳: ${LAST_MODIFY}"
-
-          if [ "${NOW_MODIFY}" = "${LAST_MODIFY}" ] && [ "${NOW_MODIFY}" != "0" ]; then
-            echo "文档未修改，跳过更新"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "文档已修改，将拉取最新数据"
-            echo "${NOW_MODIFY}" > .last_modify
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      # ============================================================
-      # 从腾讯文档 MCP 拉取数据并更新 HTML
-      # ============================================================
-      - name: Process Tencent Docs data and update HTML
+      - name: Pull Tencent Docs data and update HTML
         if: steps.check-doc.outputs.changed == 'true'
         env:
           TENCENT_DOCS_TOKEN: ${{ secrets.TENCENT_DOCS_TOKEN }}
           TENCENT_SMARTSHEET_FILE_ID: ${{ secrets.TENCENT_SMARTSHEET_FILE_ID }}
           TENCENT_SMARTSHEET_SHEET_ID: ${{ secrets.TENCENT_SMARTSHEET_SHEET_ID }}
+          TENCENT_LAST_MODIFY: ${{ steps.check-doc.outputs.last_modify }}
         run: |
           node update_tencent_docs_data.js
+          printf '%s\n' '${{ steps.check-doc.outputs.last_modify }}' > .last_modify
 
-      - name: Check if HTML changed
-        id: check
+      - name: Detect repository changes
+        id: changes
+        shell: bash
         run: |
-          if git diff --quiet index.html; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "数据未变化，跳过更新"
+          if git diff --quiet -- index.html; then
+            echo "html_changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "数据已变化，将更新报表"
+            echo "html_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if git diff --quiet -- index.html .last_modify; then
+            echo "repo_changed=false" >> "$GITHUB_OUTPUT"
+            echo "腾讯文档和网页数据均无变化"
+          else
+            echo "repo_changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- index.html .last_modify
           fi
 
       - name: Commit and push
-        if: steps.check.outputs.changed == 'true'
+        if: steps.changes.outputs.repo_changed == 'true'
+        shell: bash
         run: |
           git config user.name "auto-update"
           git config user.email "auto@update.bot"
-          git pull --rebase origin main || true
           git add index.html .last_modify
-          git commit -m "自动更新报表数据 $(date +'%Y-%m-%d %H:%M')" || echo "no changes to commit"
-          git push
+          git commit -m "自动更新报表数据 $(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M')"
+
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "第 ${attempt} 次推送失败，稍后重试"
+            sleep $((attempt * 3))
+          done
+          exit 1
 
       - name: Setup Pages
-        if: steps.check.outputs.changed == 'true' || github.event_name == 'push'
-        uses: actions/configure-pages@v4
+        if: steps.changes.outputs.html_changed == 'true'
+        uses: actions/configure-pages@v5
 
-      - name: Upload artifact
-        if: steps.check.outputs.changed == 'true' || github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Pages artifact
+        if: steps.changes.outputs.html_changed == 'true'
+        uses: actions/upload-pages-artifact@v4
         with:
           path: '.'
 
       - name: Deploy to GitHub Pages
-        if: steps.check.outputs.changed == 'true' || github.event_name == 'push'
+        if: steps.changes.outputs.html_changed == 'true'
+        uses: actions/deploy-pages@v4
+
+  deploy-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
