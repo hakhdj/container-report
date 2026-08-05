@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "container-report-trigger",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-05",
+  "workers_dev": true,
+  "triggers": {
+    "crons": [
+      "*/2 * * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

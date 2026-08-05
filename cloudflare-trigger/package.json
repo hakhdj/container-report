@@ -1,0 +1,13 @@
+{
+  "name": "container-report-trigger",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/worker.test.mjs",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
