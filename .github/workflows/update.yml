@@ -1,7 +1,7 @@
 name: 自动更新供应商空容器报表
 
 on:
-  # 每 5 分钟检查一次腾讯文档是否有更新
+  # 每 5 分钟检查一次腾讯文档是否有更新（GitHub 对 cron 有节流，仅作兜底）
   schedule:
     - cron: '*/5 * * * *'
   # 手动触发
@@ -9,6 +9,9 @@ on:
   # 推送触发
   push:
     branches: [main]
+  # 飞书定时检查推送的信号（真正实现近实时更新）
+  repository_dispatch:
+    types: [update-report]
 
 permissions:
   contents: write
