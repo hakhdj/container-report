@@ -150,7 +150,7 @@ const specialCats = ['可折叠胶框', 'PE折叠箱', '可折叠铁框', '隔�
 function parseDateKey(key) {
     if (!key) return null;
     const k = key.toString().trim();
-    let m = k.match(/(\d{1,2})月(\d{1,2})日/);
+    let m = k.match(/(\d{1,2})月(\d{1,2})(?:日|号)/);
     if (m) return String(parseInt(m[1])).padStart(2, '0') + '-' + String(parseInt(m[2])).padStart(2, '0');
     m = k.match(/^(\d{1,2})-(\d{1,2})$/);
     if (m) return String(parseInt(m[1])).padStart(2, '0') + '-' + String(parseInt(m[2])).padStart(2, '0');
