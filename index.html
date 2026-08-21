@@ -222,6 +222,16 @@
             .header h1 { font-size: 22px; }
             .modal-grid { grid-template-columns: 1fr; }
         }
+    
+
+        /* 时间选择下拉（新增） */
+        .date-select {
+            display:inline-block; padding:5px 10px; margin:0 8px 0 0;
+            border:1px solid #ccd6e6; border-radius:6px; background:#fff;
+            color:#1d2a3a; font-size:13px; cursor:pointer; min-width:130px;
+        }
+        .date-select:focus { outline:2px solid #2563eb44; }
+        .date-selector { align-items:center; }
     </style>
 </head>
 <body>
@@ -11756,6 +11766,52 @@ function trendIcon(cur, prev) {
 // =====================================================================
 const dates = Object.keys(TIMELINE).sort();
 const latestDate = dates[dates.length - 1];
+
+// =====================================================================
+// 时间选择功能（新增）：每个日期板块前增加下拉，与日期按钮联动
+// =====================================================================
+function attachDateSelect(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const sel = document.createElement('select');
+    sel.className = 'date-select';
+    dates.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d; opt.textContent = dateLabel[d] || d;
+        if (d === latestDate) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    sel.title = '选择日期查看（默认最新）';
+    sel.onchange = function () {
+        const val = sel.value;
+        const btns = container.querySelectorAll('.date-btn');
+        const target = getBtnByD(btns, val);
+        if (target && typeof target.click === 'function') target.click();
+        else {
+            btns.forEach(b => b.classList.toggle('active', (b.dataset.d || '') === val));
+            rebuildForSelect(val);
+        }
+    };
+    container.prepend(sel);
+    // 按钮点击时反向同步下拉
+    container.querySelectorAll('.date-btn').forEach(b => {
+        if (!b.dataset._boundSel) { b.dataset._boundSel = '1'; b.addEventListener('click', function(){ sel.value = b.dataset.d; }); }
+    });
+}
+function getBtnByD(btns, val) {
+    for (const b of btns) if ((b.dataset.d || '') === val) return b;
+    return null;
+}
+// 当某板块按钮不存在时（如托盘只见 >= PALLET_START_DATE），回退到重新构建各板块
+function rebuildForSelect(val) {
+    if (typeof buildSummary === 'function') { summarySelectedDate = val; buildSummary(); }
+    if (typeof buildCrossZoneTable === 'function') { czSelectedDate = val; buildCrossZoneTable(val); }
+    if (typeof buildSupplierTotalTables === 'function') { stSelectedDate = val; buildSupplierTotalTables(val); }
+    if (typeof buildAlertTables === 'function') { alertSelectedDate = val; buildAlertTables(val); }
+    if (typeof buildPalletMfgTable === 'function') { palletSelectedDate = val; buildPalletMfgTable(val); }
+}
+
+// 为全部日期板块挂上下拉（在所有按钮构建完成后调用）
 const prevDate = dates.length > 1 ? dates[dates.length - 2] : null;
 const dateLabel = { '07-22': '截至7/22 06:30', '07-23': '截至7/23 06:30' };
 
@@ -11795,7 +11851,7 @@ let summarySelectedDate = latestDate;
 dates.forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'date-btn' + (d === summarySelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d;
+    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
     btn.onclick = function() {
         document.querySelectorAll('#summaryDateSelector .date-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
@@ -11858,7 +11914,7 @@ let czSelectedDate = latestDate;
 dates.forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'date-btn' + (d === czSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d;
+    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
     btn.onclick = function() {
         document.querySelectorAll('#crossZoneDateSelector .date-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
@@ -11926,7 +11982,7 @@ let stSelectedDate = latestDate;
 dates.forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'date-btn' + (d === stSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d;
+    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
     btn.onclick = function() {
         document.querySelectorAll('#supplierTotalDateSelector .date-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
@@ -11994,7 +12050,7 @@ let alertStatusFilter = 'all'; // 'all', 3, 2, 1.5
 dates.forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'date-btn' + (d === alertSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d;
+    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
     btn.onclick = function() {
         document.querySelectorAll('#alertDateSelector .date-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
@@ -12129,7 +12185,7 @@ let palletSelectedDate = latestDate;
 dates.filter(d => d >= PALLET_START_DATE).forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'date-btn' + (d === palletSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d;
+    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
     btn.onclick = function() {
         document.querySelectorAll('#palletDateSelector .date-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
@@ -12138,6 +12194,14 @@ dates.filter(d => d >= PALLET_START_DATE).forEach(d => {
     };
     palletDateSelector.appendChild(btn);
 });
+
+
+// =====================================================================
+// 为全部日期板块挂上下拉（在所有按钮构建完成后调用）
+// =====================================================================
+window.__DATE_SELECTORS__ = ['summaryDateSelector', 'crossZoneDateSelector',
+    'supplierTotalDateSelector', 'alertDateSelector', 'palletDateSelector'];
+window.__DATE_SELECTORS__.forEach(id => attachDateSelect(id));
 
 function buildPalletMfgTable(date) {
     const idx = dates.indexOf(date);
