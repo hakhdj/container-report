@@ -16840,33 +16840,33 @@ function attachDateSelect(containerId) {
         sel.appendChild(opt);
     });
     sel.title = '选择日期查看（默认最新）';
-    sel.onchange = function () {
-        const val = sel.value;
-        const btns = container.querySelectorAll('.date-btn');
-        const target = getBtnByD(btns, val);
-        if (target && typeof target.click === 'function') target.click();
-        else {
-            btns.forEach(b => b.classList.toggle('active', (b.dataset.d || '') === val));
-            rebuildForSelect(val);
-        }
-    };
-    container.prepend(sel);
-    // 按钮点击时反向同步下拉
-    container.querySelectorAll('.date-btn').forEach(b => {
-        if (!b.dataset._boundSel) { b.dataset._boundSel = '1'; b.addEventListener('click', function(){ sel.value = b.dataset.d; }); }
+    sel.onchange = function () { rebuildForSelect(sel.value); };
+    container.appendChild(sel);
+}
+// 托盘板块只显示 >= PALLET_START_DATE，下拉也按此过滤
+function attachPalletDateSelect() {
+    const container = document.getElementById('palletDateSelector');
+    if (!container) return;
+    const sel = document.createElement('select');
+    sel.className = 'date-select';
+    dates.filter(d => d >= PALLET_START_DATE).forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d; opt.textContent = dateLabel[d] || d;
+        if (d === latestDate) opt.selected = true;
+        sel.appendChild(opt);
     });
+    sel.title = '选择日期查看（默认最新）';
+    sel.onchange = function () {
+        if (typeof buildPalletMfgTable === 'function') { palletSelectedDate = sel.value; buildPalletMfgTable(sel.value); }
+    };
+    container.appendChild(sel);
 }
-function getBtnByD(btns, val) {
-    for (const b of btns) if ((b.dataset.d || '') === val) return b;
-    return null;
-}
-// 当某板块按钮不存在时（如托盘只见 >= PALLET_START_DATE），回退到重新构建各板块
+// 切换下拉时重建对应板块
 function rebuildForSelect(val) {
     if (typeof buildSummary === 'function') { summarySelectedDate = val; buildSummary(); }
     if (typeof buildCrossZoneTable === 'function') { czSelectedDate = val; buildCrossZoneTable(val); }
     if (typeof buildSupplierTotalTables === 'function') { stSelectedDate = val; buildSupplierTotalTables(val); }
     if (typeof buildAlertTables === 'function') { alertSelectedDate = val; buildAlertTables(val); }
-    if (typeof buildPalletMfgTable === 'function') { palletSelectedDate = val; buildPalletMfgTable(val); }
 }
 
 // 为全部日期板块挂上下拉（在所有按钮构建完成后调用）
@@ -16906,18 +16906,6 @@ initSearchChips();
 const summaryDateSelector = document.getElementById('summaryDateSelector');
 let summarySelectedDate = latestDate;
 
-dates.forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'date-btn' + (d === summarySelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
-    btn.onclick = function() {
-        document.querySelectorAll('#summaryDateSelector .date-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        summarySelectedDate = d;
-        buildSummary();
-    };
-    summaryDateSelector.appendChild(btn);
-});
 
 function getZoneTotal(zone, date) {
     return getFilteredSeries().filter(s => s.zone === zone).reduce((sum, s) => sum + (s.data[date] || 0), 0);
@@ -16969,18 +16957,6 @@ const crossZoneDateSelector = document.getElementById('crossZoneDateSelector');
 const crossZoneTable = document.getElementById('crossZoneTable');
 let czSelectedDate = latestDate;
 
-dates.forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'date-btn' + (d === czSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
-    btn.onclick = function() {
-        document.querySelectorAll('#crossZoneDateSelector .date-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        czSelectedDate = d;
-        buildCrossZoneTable(d);
-    };
-    crossZoneDateSelector.appendChild(btn);
-});
 
 function buildCrossZoneTable(date) {
     const idx = dates.indexOf(date);
@@ -17037,18 +17013,6 @@ const supplierTotalDateSelector = document.getElementById('supplierTotalDateSele
 const supplierTotalTables = document.getElementById('supplierTotalTables');
 let stSelectedDate = latestDate;
 
-dates.forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'date-btn' + (d === stSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
-    btn.onclick = function() {
-        document.querySelectorAll('#supplierTotalDateSelector .date-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        stSelectedDate = d;
-        buildSupplierTotalTables(d);
-    };
-    supplierTotalDateSelector.appendChild(btn);
-});
 
 function buildSupplierTotalTables(date) {
     const idx = dates.indexOf(date);
@@ -17105,18 +17069,6 @@ const alertTables = document.getElementById('alertTables');
 let alertSelectedDate = latestDate;
 let alertStatusFilter = 'all'; // 'all', 3, 2, 1.5
 
-dates.forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'date-btn' + (d === alertSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
-    btn.onclick = function() {
-        document.querySelectorAll('#alertDateSelector .date-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        alertSelectedDate = d;
-        buildAlertTables(d);
-    };
-    alertDateSelector.appendChild(btn);
-});
 
 // 状态筛选按钮
 const statusSelector = document.getElementById('alertStatusSelector');
@@ -17240,18 +17192,6 @@ const palletMfgTable = document.getElementById('palletMfgTable');
 let palletSelectedDate = latestDate;
 
 // 日期按钮：只展示 >= PALLET_START_DATE 的日期
-dates.filter(d => d >= PALLET_START_DATE).forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'date-btn' + (d === palletSelectedDate ? ' active' : '');
-    btn.textContent = dateLabel[d] || d; btn.dataset.d = d;
-    btn.onclick = function() {
-        document.querySelectorAll('#palletDateSelector .date-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        palletSelectedDate = d;
-        buildPalletMfgTable(d);
-    };
-    palletDateSelector.appendChild(btn);
-});
 
 
 // =====================================================================
@@ -17259,7 +17199,11 @@ dates.filter(d => d >= PALLET_START_DATE).forEach(d => {
 // =====================================================================
 window.__DATE_SELECTORS__ = ['summaryDateSelector', 'crossZoneDateSelector',
     'supplierTotalDateSelector', 'alertDateSelector', 'palletDateSelector'];
-window.__DATE_SELECTORS__.forEach(id => attachDateSelect(id));
+// 通用板块
+['summaryDateSelector','crossZoneDateSelector','supplierTotalDateSelector','alertDateSelector']
+    .forEach(id => attachDateSelect(id));
+// 托盘板块特殊处理（只显示 >= PALLET_START_DATE）
+attachPalletDateSelect();
 
 function buildPalletMfgTable(date) {
     const idx = dates.indexOf(date);
